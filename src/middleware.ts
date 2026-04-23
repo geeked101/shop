@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const PUBLIC_PATHS = ['/auth/login', '/auth/otp', '/auth/role']
+const PUBLIC_PATHS = ['/', '/auth/login', '/auth/otp', '/auth/role']
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const pathname = req.nextUrl.pathname
 
-  // Allow public paths
-  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) return res
+  // Allow public paths (exact match for '/' or starts with auth paths)
+  if (pathname === '/' || PUBLIC_PATHS.slice(1).some(p => pathname.startsWith(p))) return res
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
