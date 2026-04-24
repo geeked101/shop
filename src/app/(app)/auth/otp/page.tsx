@@ -20,22 +20,60 @@ export default function OTPPage() {
   }, [])
 
   function handleInput(i: number, val: string) {
-    if (!/^\d*$/.test(val)) return
+    // Only allow numbers
+    const cleanVal = val.replace(/[^0-9]/g, '')
+    if (!cleanVal && val !== '') return
+
     const next = [...otp]
-    next[i] = val.slice(-1)
+    next[i] = cleanVal.slice(-1)
     setOtp(next)
-    if (val && i < 5) refs.current[i + 1]?.focus()
-    if (!loading && next.every(d => d) && next.join('').length === 6) verify(next.join(''))
+
+    // Move focus forward
+    if (cleanVal && i < 5) {
+      refs.current[i + 1]?.focus()
+    }
+    
+    // Auto-verify when full
+    const fullCode = next.join('')
+    if (fullCode.length === 6 && !loading) {
+      verify(fullCode)
+    }
   }
 
   function handleKey(i: number, e: React.KeyboardEvent) {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) refs.current[i - 1]?.focus()
+    if (e.key === 'Backspace') {
+      if (!otp[i] && i > 0) {
+        const next = [...otp]
+        next[i - 1] = ''
+        setOtp(next)
+        refs.current[i - 1]?.focus()
+      } else {
+        const next = [...otp]
+        next[i] = ''
+        setOtp(next)
+      }
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    const data = e.clipboardData.getData('text').slice(0, 6).replace(/[^0-9]/g, '')
+    if (data.length) {
+      const next = [...otp]
+      data.split('').forEach((char, index) => {
+        if (index < 6) next[index] = char
+      })
+      setOtp(next)
+      verify(data)
+    }
   }
 
   async function verify(code: string) {
-    if (loading) return
-    if (!phone) { toast.error('Session expired, please try again'); router.push('/auth/login'); return }
-    if (!/^\d{6}$/.test(code)) { toast.error('Enter the 6-digit code'); return }
+    if (loading || code.length !== 6) return
+    if (!phone) { 
+      toast.error('Session expired, please try again')
+      router.push('/auth/login')
+      return 
+    }
     setLoading(true)
     const { error } = await supabase.auth.verifyOtp({ phone, token: code, type: 'sms' })
     if (error) {
@@ -63,19 +101,22 @@ export default function OTPPage() {
         We sent a 6-digit code to <strong>{phone}</strong>
       </p>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-8 justify-between">
         {otp.map((d, i) => (
           <input
             key={i}
             ref={el => { refs.current[i] = el }}
             type="tel"
+            inputMode="numeric"
+            autoComplete="one-time-code"
             maxLength={1}
             value={d}
+            onPaste={handlePaste}
             onChange={e => handleInput(i, e.target.value)}
             onKeyDown={e => handleKey(i, e)}
-            className={`flex-1 h-14 text-center text-xl font-medium rounded-xl border outline-none transition-colors
-              ${d ? 'border-[#FF385C] bg-[#fff8f8]' : 'border-gray-200 bg-gray-50'}
-              focus:border-[#FF385C]`}
+            className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold rounded-2xl border-2 outline-none transition-all duration-200
+              ${d ? 'border-[#FF385C] bg-[#fff8f8] text-[#FF385C]' : 'border-gray-100 bg-gray-50 text-gray-900'}
+              focus:border-[#FF385C] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,56,92,0.1)]`}
           />
         ))}
       </div>

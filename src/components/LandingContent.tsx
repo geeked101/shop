@@ -65,9 +65,7 @@ export default function LandingContent() {
       <nav className={`landing-nav ${scrolled ? 'scrolled' : ''}`}>
         <Link href="/" className="nav-logo">sh<span>o</span>p</Link>
         <div className="nav-links">
-          <a href="#how">How it works</a>
           <a href="#features">Features</a>
-          <a href="#who">For who</a>
           <a href="#zones">Zones</a>
           <Link href="/auth/login" className="nav-cta">Get started</Link>
         </div>
@@ -93,20 +91,6 @@ export default function LandingContent() {
             <div className="hero-buttons">
               <Link href="/auth/login" className="btn-primary">Order now →</Link>
               <Link href="/auth/login" className="btn-secondary">Register your store</Link>
-            </div>
-            <div className="hero-trust">
-              <div className="trust-item">
-                <span className="trust-num">10k+</span>
-                <span className="trust-label">Happy customers</span>
-              </div>
-              <div className="trust-item">
-                <span className="trust-num">200+</span>
-                <span className="trust-label">Stores on platform</span>
-              </div>
-              <div className="trust-item">
-                <span className="trust-num">24min</span>
-                <span className="trust-label">Avg delivery time</span>
-              </div>
             </div>
           </div>
 
@@ -187,39 +171,8 @@ export default function LandingContent() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="section" id="how">
-        <div className="section-inner">
-          <div className="reveal">
-            <div className="section-label">Simple as 1, 2, 3</div>
-            <h2 className="section-title">Order in under<br />60 seconds.</h2>
-            <p className="section-sub">Three taps and your order is on the way. No apps to install, no accounts to verify — just open, order, done.</p>
-          </div>
-          <div className="steps-grid reveal">
-            <div className="step-card">
-              <span className="step-num">01</span>
-              <span className="step-icon">🔍</span>
-              <div className="step-title">Browse & pick</div>
-              <p className="step-desc">Search restaurants, pharmacies, shops and grocery stores near you. Filter by zone, category, or what's open right now.</p>
-            </div>
-            <div className="step-card">
-              <span className="step-num">02</span>
-              <span className="step-icon">📱</span>
-              <div className="step-title">Pay with M-Pesa</div>
-              <p className="step-desc">One tap STK push to your phone. Enter your PIN and payment is confirmed in seconds. No card details, no cash needed.</p>
-            </div>
-            <div className="step-card">
-              <span className="step-num">03</span>
-              <span className="step-icon">🏍</span>
-              <div className="step-title">Track your rider</div>
-              <p className="step-desc">Watch your boda rider in real time on the map. Chat directly or call them. Know the exact minute your order arrives.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* FEATURES */}
-      <section className="section" id="features" style={{ paddingTop: 0 }}>
+      <section className="section" id="features">
         <div className="section-inner">
           <div className="reveal">
             <div className="section-label">Built for Nairobi</div>
@@ -245,104 +198,6 @@ export default function LandingContent() {
               <div className="feature-icon">📍</div>
               <div className="feature-title">Zone by zone</div>
               <p className="feature-desc">Coverage built zone by zone. CBD, Westlands, Roysambu, Kilimani and more — with new zones added monthly.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* MPESA SECTION */}
-      <section className="mpesa-section" id="mpesa">
-        <div className="mpesa-inner">
-          <div className="reveal">
-            <div className="section-label">Payments</div>
-            <h2 className="section-title">Built on<br /><span style={{ color: 'var(--green)' }}>M-Pesa.</span></h2>
-            <p className="section-sub" style={{ marginTop: '16px' }}>Safaricom Daraja API powers every payment. STK push goes to your phone the moment you confirm an order. No typing numbers, no redirects — just your PIN.</p>
-            <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--muted)' }}>
-                <span style={{ color: 'var(--green)' }}>✓</span> STK Push — payment prompt on your phone
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--muted)' }}>
-                <span style={{ color: 'var(--green)' }}>✓</span> Instant confirmation — order placed on payment
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--muted)' }}>
-                <span style={{ color: 'var(--green)' }}>✓</span> Vendor payouts every Friday via M-Pesa
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--muted)' }}>
-                <span style={{ color: 'var(--green)' }}>✓</span> Rider earnings paid direct to M-Pesa
-              </div>
-            </div>
-          </div>
-          <div className="mpesa-visual reveal">
-            <div className="phone-prompt">
-              <div className="pp-title">M-Pesa Payment Request</div>
-              <div className="pp-amount">KES 1,430</div>
-              <div className="pp-desc">Java House Westlands · Order #SHP-00482</div>
-              <div className="pp-input">
-                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Enter M-Pesa PIN</span>
-                <div className="pp-dots">
-                  <div className="pp-dot"></div>
-                  <div className="pp-dot"></div>
-                  <div className="pp-dot"></div>
-                  <div className="pp-dot"></div>
-                </div>
-              </div>
-              <button className="pp-btn">Confirm payment</button>
-            </div>
-            <div className="mpesa-card">
-              <div className="mpesa-logo">M-PESA</div>
-              <div>
-                <div className="mpesa-card-title">Payment confirmed</div>
-                <div className="mpesa-card-sub">Ref: QK7X2M9P · Java House</div>
-              </div>
-              <div className="mpesa-amount">✓</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FOR WHO */}
-      <section className="section" id="who">
-        <div className="section-inner">
-          <div className="reveal">
-            <div className="section-label">Who it's for</div>
-            <h2 className="section-title">Everyone wins<br />on Shop.</h2>
-          </div>
-          <div className="roles-grid reveal">
-            <div className="role-card">
-              <span className="role-emoji">🛍</span>
-              <div className="role-title">Customers</div>
-              <p className="role-desc">Order from any store in your zone. Pay with M-Pesa. Track your rider live. Rate and reorder with one tap.</p>
-              <ul className="role-perks">
-                <li>Real-time order tracking</li>
-                <li>Chat with rider + vendor</li>
-                <li>Saved addresses & M-Pesa</li>
-                <li>Full order history</li>
-              </ul>
-              <div className="role-glow"></div>
-            </div>
-            <div className="role-card">
-              <span className="role-emoji">🏪</span>
-              <div className="role-title">Vendors</div>
-              <p className="role-desc">Register your restaurant, pharmacy or shop. Manage orders from a dashboard. Get paid every Friday.</p>
-              <ul className="role-perks">
-                <li>Order dashboard live</li>
-                <li>Menu item toggles</li>
-                <li>Earnings analytics</li>
-                <li>Weekly M-Pesa payouts</li>
-              </ul>
-              <div className="role-glow"></div>
-            </div>
-            <div className="role-card">
-              <span className="role-emoji">🏍</span>
-              <div className="role-title">Boda Riders</div>
-              <p className="role-desc">Accept deliveries near you. Earn on your own schedule. Paid direct to M-Pesa per delivery.</p>
-              <ul className="role-perks">
-                <li>Choose your zone</li>
-                <li>Accept or decline requests</li>
-                <li>Earnings per km</li>
-                <li>Same-day M-Pesa pay</li>
-              </ul>
-              <div className="role-glow"></div>
             </div>
           </div>
         </div>
