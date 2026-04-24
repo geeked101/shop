@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { rateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
+  const { success: allowed } = await rateLimit(req, 'create-order', 10, 60)
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests. Slow down.' }, { status: 429 })
+  }
+
   try {
     const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { items, vendorId, subtotal, deliveryFee, serviceFee, total, paymentMethod, note } = await req.json()
+
+    if (!items?.length || !vendorId) {
+      return NextResponse.json({ error: 'Invalid order data' }, { status: 400 })
+    }
 
     // Create order
     const { data: order, error } = await supabase
@@ -33,7 +43,6 @@ export async function POST(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-    // Insert order items
     const orderItems = items.map((ci: { item: { id: string; name: string; price: number }; quantity: number }) => ({
       order_id: order.id,
       menu_item_id: ci.item.id,
@@ -46,11 +55,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ orderId: order.id })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    console.error('[Orders]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

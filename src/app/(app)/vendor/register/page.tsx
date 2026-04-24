@@ -1,8 +1,9 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { uploadVendorFile } from '@/lib/storage'
 import toast from 'react-hot-toast'
 
 const TYPES = [
@@ -13,8 +14,20 @@ const TYPES = [
 ]
 
 const ZONES = ['CBD','Westlands','Roysambu','Kilimani','Lavington','South B','South C','Mutomo','Parklands','Kasarani','Eastleigh','Ngong Rd']
-
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+
+type DocType = 'logo' | 'cert' | 'kra' | 'licence'
+
+interface DocState {
+  file: File | null
+  url: string | null
+  uploading: boolean
+  done: boolean
+}
+
+function emptyDoc(): DocState {
+  return { file: null, url: null, uploading: false, done: false }
+}
 
 export default function VendorRegisterPage() {
   const [step, setStep] = useState(1)
@@ -27,11 +40,31 @@ export default function VendorRegisterPage() {
   const [minOrder, setMinOrder] = useState('300')
   const [selectedZones, setSelectedZones] = useState<string[]>(['CBD','Westlands'])
   const [closedDays, setClosedDays] = useState<number[]>([6])
-  const [docs, setDocs] = useState({ logo: false, cert: false, kra: false })
+  const [docs, setDocs] = useState<Record<DocType, DocState>>({
+    logo: emptyDoc(), cert: emptyDoc(), kra: emptyDoc(), licence: emptyDoc()
+  })
+  const fileRefs = useRef<Record<DocType, HTMLInputElement | null>>({ logo: null, cert: null, kra: null, licence: null })
   const router = useRouter()
   const supabase = createClient()
 
   const progress = (step / 5) * 100
+
+  async function handleFileSelect(type: DocType, file: File) {
+    setDocs(prev => ({ ...prev, [type]: { ...prev[type], file, uploading: true, done: false } }))
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { toast.error('Not logged in'); return }
+
+    const result = await uploadVendorFile(file, user.id, type)
+    if (!result.success) {
+      toast.error(`Upload failed: ${result.error}`)
+      setDocs(prev => ({ ...prev, [type]: emptyDoc() }))
+      return
+    }
+
+    setDocs(prev => ({ ...prev, [type]: { file, url: result.url ?? null, uploading: false, done: true } }))
+    toast.success(`${type} uploaded ✓`)
+  }
 
   async function submit() {
     setLoading(true)
@@ -46,6 +79,7 @@ export default function VendorRegisterPage() {
       status: 'pending',
       rating: 0, rating_count: 0,
       is_open: false,
+      logo_url: docs.logo.url,
     })
 
     if (error) { toast.error(error.message); setLoading(false); return }
@@ -70,6 +104,13 @@ export default function VendorRegisterPage() {
       </div>
     )
   }
+
+  const DOC_CONFIG: { key: DocType; label: string; icon: string; required: boolean }[] = [
+    { key: 'logo', label: 'Business logo', icon: '🖼', required: true },
+    { key: 'cert', label: 'Registration certificate', icon: '📄', required: true },
+    { key: 'kra', label: 'KRA PIN certificate', icon: '📄', required: true },
+    { key: 'licence', label: 'Food / health licence', icon: '📄', required: false },
+  ]
 
   return (
     <div className="bg-white min-h-screen pb-24">
@@ -133,26 +174,48 @@ export default function VendorRegisterPage() {
           </div>
         )}
 
-        {/* Step 3: Documents */}
+        {/* Step 3: Documents — REAL UPLOAD */}
         {step === 3 && (
           <div>
             <div className="text-xl font-medium text-gray-900 mb-1.5">Verify your business</div>
-            <div className="text-sm text-gray-400 mb-5">Upload docs to get approved. Takes under 24 hours.</div>
-            {[
-              { key: 'logo' as const, label: 'Business logo', icon: '🖼' },
-              { key: 'cert' as const, label: 'Registration certificate', icon: '📄' },
-              { key: 'kra' as const, label: 'KRA PIN certificate', icon: '📄' },
-            ].map(d => (
-              <div key={d.key} className="mb-4">
-                <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">{d.label}</div>
-                <div onClick={() => setDocs(prev => ({ ...prev, [d.key]: true }))}
-                  className={`border-2 rounded-xl p-5 text-center cursor-pointer ${docs[d.key] ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 bg-white'}`}>
-                  <div className="text-2xl mb-1.5">{docs[d.key] ? '✅' : d.icon}</div>
-                  <div className="text-sm font-medium text-gray-700">{docs[d.key] ? 'Uploaded ✓ — tap to replace' : 'Tap to upload'}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">PDF or image · Max 5MB</div>
+            <div className="text-sm text-gray-400 mb-5">Upload docs. Files go to Supabase Storage. Takes under 24 hours to approve.</div>
+            {DOC_CONFIG.map(d => {
+              const state = docs[d.key]
+              return (
+                <div key={d.key} className="mb-4">
+                  <div className="flex justify-between mb-1.5">
+                    <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">{d.label}</div>
+                    {!d.required && <div className="text-[10px] text-gray-300">Optional</div>}
+                  </div>
+                  <input
+                    type="file"
+                    ref={el => { fileRefs.current[d.key] = el }}
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(d.key, f) }}
+                  />
+                  <div
+                    onClick={() => fileRefs.current[d.key]?.click()}
+                    className={`border-2 rounded-xl p-5 text-center cursor-pointer transition-all
+                      ${state.done ? 'border-green-400 bg-green-50'
+                        : state.uploading ? 'border-blue-300 bg-blue-50'
+                        : 'border-dashed border-gray-300 bg-white'}`}
+                  >
+                    <div className="text-2xl mb-1.5">
+                      {state.uploading ? '⏳' : state.done ? '✅' : d.icon}
+                    </div>
+                    <div className="text-sm font-medium text-gray-700">
+                      {state.uploading ? 'Uploading...'
+                        : state.done ? (state.file?.name ?? 'Uploaded ✓')
+                        : 'Tap to upload'}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      {state.done ? 'Tap to replace' : 'PDF or image · Max 5MB'}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
@@ -160,7 +223,7 @@ export default function VendorRegisterPage() {
         {step === 4 && (
           <div>
             <div className="text-xl font-medium text-gray-900 mb-1.5">Zones & opening hours</div>
-            <div className="text-sm text-gray-400 mb-5">Where you deliver and when you're open.</div>
+            <div className="text-sm text-gray-400 mb-5">Where you deliver and when you&apos;re open.</div>
             <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">Delivery zones</div>
             <div className="flex flex-wrap gap-2 mb-5">
               {ZONES.map(z => (
@@ -198,8 +261,8 @@ export default function VendorRegisterPage() {
                 { key: 'Phone', val: phone || '—' },
                 { key: 'Address', val: address || '—' },
                 { key: 'Min. order', val: `KES ${minOrder}` },
-                { key: 'Documents', val: `${Object.values(docs).filter(Boolean).length}/3 uploaded` },
-                { key: 'Zones', val: selectedZones.join(', ') },
+                { key: 'Documents', val: `${Object.values(docs).filter(d => d.done).length}/3 uploaded` },
+                { key: 'Zones', val: selectedZones.join(', ') || '—' },
               ].map(row => (
                 <div key={row.key} className="flex justify-between items-center px-4 py-3 border-b border-gray-100 last:border-b-0">
                   <span className="text-xs text-gray-400 uppercase tracking-wide">{row.key}</span>

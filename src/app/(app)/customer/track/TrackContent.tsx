@@ -2,7 +2,18 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import dynamic from 'next/dynamic'
 import type { Order } from '@/types'
+
+// Dynamically import map to avoid SSR issues
+const DeliveryMap = dynamic(() => import('@/components/maps/DeliveryMap'), {
+  ssr: false,
+  loading: () => <div className="h-52 bg-[#eef2e6] flex items-center justify-center"><div className="text-4xl">🗺️</div></div>,
+})
+
+// Default Nairobi coordinates for demo
+const JAVA_HOUSE = { lat: -1.2667, lng: 36.8114 }
+const SARIT_CENTRE = { lat: -1.2556, lng: 36.7968 }
 
 const STEPS = [
   { key: 'pending', label: 'Placed' },
@@ -22,17 +33,20 @@ export default function TrackContent() {
   const orderId = params.get('id')
   const [order, setOrder] = useState<Order | null>(null)
   const [eta, setEta] = useState(15)
+  const [riderPos, setRiderPos] = useState(JAVA_HOUSE)
   const supabase = createClient()
 
   useEffect(() => {
     if (!orderId) return
+
     supabase
       .from('orders')
-      .select('*, vendor:vendors(name,category), rider:riders(name,phone,plate,rating)')
+      .select('*, vendor:vendors(name,category,lat,lng), rider:riders(name,phone,plate,rating,lat,lng)')
       .eq('id', orderId)
       .single()
       .then(({ data }: { data: unknown }) => { if (data) setOrder(data as Order) })
 
+    // Listen for order status + rider location updates
     const channel = supabase
       .channel(`order-${orderId}`)
       .on(
@@ -41,11 +55,20 @@ export default function TrackContent() {
         (payload: { new: Partial<Order> }) =>
           setOrder(prev => prev ? { ...prev, ...payload.new } as Order : prev)
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'riders' },
+        (payload: { new: { lat?: number; lng?: number } }) => {
+          if (payload.new.lat && payload.new.lng) {
+            setRiderPos({ lat: payload.new.lat, lng: payload.new.lng })
+          }
+        }
+      )
       .subscribe()
 
     const timer = setInterval(() => setEta(e => Math.max(1, e - 1)), 60000)
     return () => { supabase.removeChannel(channel); clearInterval(timer) }
-  }, [orderId])
+  }, [orderId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!order) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -54,6 +77,16 @@ export default function TrackContent() {
   )
 
   const stepIdx = STEP_INDEX[order.status] ?? 0
+
+  // Use real vendor/customer coords if available, otherwise demo coords
+  const pickupCoords = {
+    lat: (order.vendor as { lat?: number } | null)?.lat ?? JAVA_HOUSE.lat,
+    lng: (order.vendor as { lng?: number } | null)?.lng ?? JAVA_HOUSE.lng,
+  }
+  const dropoffCoords = {
+    lat: order.delivery_lat ?? SARIT_CENTRE.lat,
+    lng: order.delivery_lng ?? SARIT_CENTRE.lng,
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen pb-6">
@@ -66,14 +99,21 @@ export default function TrackContent() {
         <div className="w-6" />
       </div>
 
-      <div className="h-52 bg-[#eef2e6] flex items-center justify-center relative">
-        <div className="text-5xl">🗺️</div>
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-white rounded-full px-4 py-2 flex items-center gap-2 text-xs font-medium text-gray-900 border border-gray-100">
+      {/* Real map */}
+      <div className="relative">
+        <DeliveryMap
+          pickup={pickupCoords}
+          dropoff={dropoffCoords}
+          riderPosition={riderPos}
+          height={220}
+        />
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-white rounded-full px-4 py-2 flex items-center gap-2 text-xs font-medium text-gray-900 border border-gray-100 shadow-sm">
           <span className="w-2 h-2 rounded-full bg-[#FF385C] animate-pulse" />
           Arriving in {eta} min
         </div>
       </div>
 
+      {/* Progress */}
       <div className="bg-white px-4 py-4 border-b border-gray-100">
         <div className="flex items-center">
           {STEPS.map((step, i) => (
@@ -97,6 +137,7 @@ export default function TrackContent() {
         </div>
       </div>
 
+      {/* Rider card */}
       {order.rider && (
         <div className="mx-4 mt-3.5 bg-white rounded-xl border border-gray-100 p-3.5">
           <div className="flex items-center gap-3">
@@ -109,7 +150,7 @@ export default function TrackContent() {
               <div className="text-xs text-gray-400 mt-0.5">★ {order.rider.rating.toFixed(1)}</div>
             </div>
             <div className="flex gap-2">
-              <a href={`tel:+254${order.rider.phone}`} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-base border border-gray-200">📞</a>
+              <a href={`tel:${order.rider.phone}`} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-base border border-gray-200">📞</a>
               <button onClick={() => router.push('/customer/inbox')} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-base border border-gray-200">💬</button>
             </div>
           </div>
