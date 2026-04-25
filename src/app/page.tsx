@@ -12,10 +12,10 @@ export default async function RootPage() {
     const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
     if (profile) {
       switch (profile.role) {
-        case 'vendor': redirect('/vendor/dashboard')
-        case 'rider': redirect('/rider/deliveries')
-        case 'admin': redirect('/admin/dashboard')
-        default: redirect('/customer/home')
+        case 'vendor': redirect('/vendor/dashboard'); break
+        case 'rider': redirect('/rider/deliveries'); break
+        case 'admin': redirect('/admin/dashboard'); break
+        default: redirect('/customer/home'); break
       }
     } else {
       redirect('/customer/home')

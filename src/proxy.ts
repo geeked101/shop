@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 
 const PUBLIC_PATHS = ['/', '/auth/login', '/auth/otp', '/auth/role']
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const res = NextResponse.next()
   const pathname = req.nextUrl.pathname
 

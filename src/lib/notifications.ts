@@ -74,37 +74,3 @@ export async function requestPushPermission(): Promise<boolean> {
   }
 }
 
-// -------------------------------------------------------------
-// FILE 2: public/firebase-messaging-sw.js
-// Service worker — handles background push messages
-// Copy this file to /public/firebase-messaging-sw.js
-// -------------------------------------------------------------
-export const SERVICE_WORKER_CONTENT = `
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
-
-firebase.initializeApp({
-  apiKey: self.FIREBASE_API_KEY,
-  projectId: self.FIREBASE_PROJECT_ID,
-  messagingSenderId: self.FIREBASE_MESSAGING_SENDER_ID,
-  appId: self.FIREBASE_APP_ID,
-});
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage(payload => {
-  const { title, body, icon } = payload.notification;
-  self.registration.showNotification(title, {
-    body,
-    icon: icon || '/icon-192.png',
-    badge: '/badge.png',
-    data: payload.data,
-  });
-});
-
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  const url = event.notification.data?.url || '/';
-  event.waitUntil(clients.openWindow(url));
-});
-`
