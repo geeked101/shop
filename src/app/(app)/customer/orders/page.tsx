@@ -130,10 +130,17 @@ export default function OrdersPage() {
                     {[1,2,3,4,5].map(s => <span key={s} className={`text-xs ${s <= order.rating! ? 'text-[#FF385C]' : 'text-gray-200'}`}>★</span>)}
                   </div>
                 )}
-                {order.status !== 'cancelled' && (
+                {['pending','confirmed','preparing','ready','collecting','on_the_way'].includes(order.status) && (
+                  <button
+                    onClick={e => { e.stopPropagation(); router.push(`/customer/track?id=${order.id}`) }}
+                    className="text-xs bg-[#FF385C] text-white px-3 py-1.5 rounded-full font-medium">
+                    Track
+                  </button>
+                )}
+                {['delivered','cancelled'].includes(order.status) && (
                   <button
                     onClick={e => { e.stopPropagation(); toast.success(`Reordering from ${order.vendor?.name}...`) }}
-                    className="text-xs bg-[#FF385C] text-white px-3 py-1.5 rounded-full font-medium">
+                    className="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium border border-gray-200">
                     Reorder
                   </button>
                 )}

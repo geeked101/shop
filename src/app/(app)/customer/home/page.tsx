@@ -8,11 +8,12 @@ export default async function CustomerHomePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const [{ data: profile }, { data: vendors }, { data: zones }] = await Promise.all([
+  const [{ data: profile }, { data: vendors }, { data: zones }, { data: address }] = await Promise.all([
     supabase.from('users').select('*').eq('id', user.id).single(),
     supabase.from('vendors').select('*, zone:zones(name)').eq('status', 'active').order('rating', { ascending: false }).limit(20),
     supabase.from('zones').select('*').eq('is_active', true),
+    supabase.from('addresses').select('*').eq('user_id', user.id).eq('is_default', true).maybeSingle(),
   ])
 
-  return <CustomerHome user={profile} vendors={vendors ?? []} zones={zones ?? []} />
+  return <CustomerHome user={profile} vendors={vendors ?? []} zones={zones ?? []} defaultAddress={address} />
 }

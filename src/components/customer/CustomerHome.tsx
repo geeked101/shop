@@ -15,9 +15,10 @@ interface Props {
   user: User | null
   vendors: Vendor[]
   zones: Zone[]
+  defaultAddress?: any | null
 }
 
-export default function CustomerHome({ user, vendors }: Props) {
+export default function CustomerHome({ user, vendors, defaultAddress }: Props) {
   const [activeCategory, setActiveCategory] = useState('all')
 
   const filtered = activeCategory === 'all'
@@ -40,7 +41,7 @@ export default function CustomerHome({ user, vendors }: Props) {
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-3 h-3 bg-[#FF385C] rounded-full rounded-bl-none rotate-[-45deg]" />
               <span className="text-xs text-gray-500">
-                Deliver to <strong className="text-gray-800 font-medium">Westlands, Nairobi</strong>
+                Deliver to <strong className="text-gray-800 font-medium">{defaultAddress?.label ?? 'Westlands'}, {defaultAddress?.address ?? 'Nairobi'}</strong>
               </span>
             </div>
           </div>
